@@ -1,9 +1,13 @@
 package example.com.controller;
 
+import example.com.controller.dto.CreateParticipantsRequestDto;
 import example.com.controller.dto.CreateTournamentRequestDto;
 import example.com.controller.dto.CreateTournamentResponseDto;
+import example.com.controller.dto.TournamentInfoDto;
 import example.com.controller.mapper.TournamentMapper;
+import example.com.domain.Participant;
 import example.com.domain.Tournament;
+import example.com.service.ParticipantService;
 import example.com.service.TournamentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +23,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TournamentRestController {
     private final TournamentService tournamentService;
+    private final ParticipantService participantService;
     private final TournamentMapper tournamentMapper;
 
     @PostMapping()
@@ -32,5 +37,24 @@ public class TournamentRestController {
     public List<Tournament> getAllTournaments(@RequestParam int page, @RequestParam int size) {
         Pageable pageable = PageRequest.of(page, size);
         return tournamentService.getAllTournaments(pageable);
+    }
+
+    @GetMapping("/{id}/bracket")
+    public TournamentInfoDto getTournament(@PathVariable int id) {
+        return tournamentService.getTournamentInfo(id);
+    }
+
+    @PostMapping("/{id}/participants")
+    public Participant createParticipant(@PathVariable int id,
+                                         @RequestBody CreateParticipantsRequestDto requestDto) {
+        Participant participant = new Participant();
+        participant.setName(requestDto.name());
+        participant.setRating(requestDto.rating());
+        return participantService.createParticipants(id, participant);
+    }
+
+    @PostMapping("/{id}/start")
+    public TournamentInfoDto startTournament(@PathVariable int id) {
+        return tournamentService.startTournament(id);
     }
 }

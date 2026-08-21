@@ -24,8 +24,6 @@ public class Participant {
 
     private Integer rating;
 
-    private Integer seed;
-
     @CreationTimestamp
     private LocalDateTime createdAt;
 }
