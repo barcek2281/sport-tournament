@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sport Tournament</title>
+    <style>
+        :root {
+            --bg: #ffffff;
+            --fg: #1a1a1a;
+            --muted: #6b6b6b;
+            --line: #d8d8d8;
+            --panel: #f6f6f6;
+            --accent: #2b6cb0;
+            --ok: #2f7a3d;
+            --warn: #a05a00;
+            --err: #b02020;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #16181c;
+                --fg: #e6e6e6;
+                --muted: #9a9a9a;
+                --line: #33373e;
+                --panel: #1e2127;
+                --accent: #6aa9e9;
+                --ok: #6cc07d;
+                --warn: #d79a3a;
+                --err: #e07070;
+            }
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 24px;
+            background: var(--bg);
+            color: var(--fg);
+            font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+        }
+
+        h1 { font-size: 20px; margin: 0 0 4px; }
+        h2 { font-size: 15px; margin: 24px 0 8px; font-weight: 600; }
+
+        main { max-width: 1100px; margin: 0 auto; }
+
+        button {
+            font: inherit;
+            padding: 5px 10px;
+            border: 1px solid var(--line);
+            background: var(--panel);
+            color: var(--fg);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover:not(:disabled) { border-color: var(--accent); }
+        button:disabled { opacity: .45; cursor: default; }
+        button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+        button.danger { color: var(--err); }
+        button.link { border: none; background: none; color: var(--accent); padding: 0; text-decoration: underline; }
+
+        input {
+            font: inherit;
+            padding: 5px 8px;
+            border: 1px solid var(--line);
+            border-radius: 4px;
+            background: var(--bg);
+            color: var(--fg);
+        }
+
+        form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+
+        table { border-collapse: collapse; width: 100%; }
+        th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+        th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+
+        .muted { color: var(--muted); }
+        .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .meta { display: flex; gap: 18px; flex-wrap: wrap; margin: 8px 0 4px; }
+        .meta b { font-weight: 600; }
+
+        .tag {
+            font-size: 11px;
+            padding: 1px 6px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+        .tag.DRAFT { color: var(--muted); }
+        .tag.IN_PROGRESS, .tag.READY { color: var(--accent); border-color: var(--accent); }
+        .tag.COMPLETED { color: var(--ok); border-color: var(--ok); }
+        .tag.PENDING { color: var(--warn); }
+
+        /* сетка: раунд - колонка, матчи - карточки */
+        .bracket { display: flex; gap: 16px; overflow-x: auto; padding-bottom: 8px; }
+        .round { min-width: 210px; flex: 0 0 auto; }
+        .round > h3 { font-size: 12px; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+
+        .match {
+            border: 1px solid var(--line);
+            border-radius: 5px;
+            margin-bottom: 10px;
+            background: var(--panel);
+            overflow: hidden;
+        }
+        .match-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 6px;
+            padding: 4px 8px;
+            border-bottom: 1px solid var(--line);
+            font-size: 11px;
+            color: var(--muted);
+        }
+        .slot {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 8px;
+        }
+        .slot + .slot { border-top: 1px solid var(--line); }
+        .slot.win { font-weight: 700; color: var(--ok); }
+        .slot.empty { color: var(--muted); font-style: italic; }
+        .slot button { padding: 1px 7px; font-size: 12px; }
+
+        #error {
+            display: none;
+            margin-bottom: 14px;
+            padding: 8px 12px;
+            border: 1px solid var(--err);
+            border-radius: 4px;
+            color: var(--err);
+        }
+
+        [hidden] { display: none !important; }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Sport Tournament</h1>
+    <p class="muted" id="subtitle">Олимпийская система на выбывание</p>
+
+    <div id="error"></div>
+
+    <!-- ============ список турниров ============ -->
+    <section id="listView">
+        <h2>Новый турнир</h2>
+        <form id="createForm">
+            <input id="tName" placeholder="Название" required>
+            <input id="tDiscipline" placeholder="Дисциплина">
+            <button class="primary" type="submit">Создать</button>
+        </form>
+
+        <h2>Турниры</h2>
+        <div class="row" style="margin-bottom:8px">
+            <button id="prevPage">‹ назад</button>
+            <span class="muted" id="pageLabel">стр. 1</span>
+            <button id="nextPage">вперёд ›</button>
+            <button id="reload">обновить</button>
+        </div>
+        <table>
+            <thead>
+            <tr><th>#</th><th>Название</th><th>Дисциплина</th><th>Статус</th><th></th></tr>
+            </thead>
+            <tbody id="tournamentRows"></tbody>
+        </table>
+    </section>
+
+    <!-- ============ карточка турнира ============ -->
+    <section id="detailView" hidden>
+        <button class="link" id="backBtn">‹ ко всем турнирам</button>
+        <h2 id="detailTitle" style="margin-top:12px"></h2>
+        <div class="meta" id="detailMeta"></div>
+
+        <div class="row" style="margin:12px 0">
+            <button class="primary" id="startBtn">Запустить турнир</button>
+            <button class="danger" id="deleteBtn">Удалить турнир</button>
+        </div>
+
+        <h2>Участники (<span id="participantCount">0</span>)</h2>
+        <form id="participantForm">
+            <input id="pName" placeholder="Имя участника" required>
+            <input id="pRating" type="number" placeholder="Рейтинг" style="width:110px">
+            <button type="submit">Добавить</button>
+        </form>
+        <table>
+            <thead><tr><th>Посев</th><th>Имя</th><th>Рейтинг</th></tr></thead>
+            <tbody id="participantRows"></tbody>
+        </table>
+
+        <h2>Сетка</h2>
+        <div id="bracket" class="bracket"></div>
+
+        <h2>История</h2>
+        <table>
+            <thead><tr><th>Матч</th><th>Победитель</th><th>Когда</th></tr></thead>
+            <tbody id="historyRows"></tbody>
+        </table>
+    </section>
+</main>
+
+<script>
+    'use strict';
+
+    let page = 0;
+    const PAGE_SIZE = 10;
+    let current = null; // последний загруженный TournamentInfoDto
+
+    const $ = (id) => document.getElementById(id);
+
+    const esc = (value) => String(value ?? '').replace(/[&<>"']/g,
+        (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+
+    const when = (iso) => iso ? new Date(iso).toLocaleString('ru-RU') : '—';
+
+    function showError(message) {
+        const box = $('error');
+        box.textContent = message;
+        box.style.display = 'block';
+    }
+
+    function clearError() {
+        $('error').style.display = 'none';
+    }
+
+    /** Обёртка над fetch: разбирает ExceptionBody и бросает осмысленную ошибку. */
+    async function api(path, options = {}) {
+        const response = await fetch(path, {
+            headers: options.body ? { 'Content-Type': 'application/json' } : {},
+            ...options
+        });
+        const text = await response.text();
+        const body = text ? JSON.parse(text) : null;
+        if (!response.ok) {
+            throw new Error((body && body.message) || (response.status + ' ' + response.statusText));
+        }
+        return body;
+    }
+
+    /** Любое действие оборачиваем так, чтобы ошибка попадала в плашку, а не в консоль. */
+    async function run(action) {
+        clearError();
+        try {
+            await action();
+        } catch (e) {
+            showError(e.message);
+        }
+    }
+
+    // ---------- список ----------
+
+    async function loadList() {
+        const tournaments = await api(`/tournaments?page=${page}&size=${PAGE_SIZE}`);
+        $('pageLabel').textContent = 'стр. ' + (page + 1);
+        $('prevPage').disabled = page === 0;
+        $('nextPage').disabled = tournaments.length < PAGE_SIZE;
+
+        $('tournamentRows').innerHTML = tournaments.length
+            ? tournaments.map((t) => `
+                <tr>
+                    <td>${t.id}</td>
+                    <td>${esc(t.name)}</td>
+                    <td>${esc(t.discipline) || '—'}</td>
+                    <td><span class="tag ${esc(t.status)}">${esc(t.status)}</span></td>
+                    <td><button class="link" data-open="${t.id}">открыть</button></td>
+                </tr>`).join('')
+            : '<tr><td colspan="5" class="muted">пусто</td></tr>';
+    }
+
+    function showList() {
+        current = null;
+        $('detailView').hidden = true;
+        $('listView').hidden = false;
+        run(loadList);
+    }
+
+    // ---------- карточка ----------
+
+    async function openTournament(id) {
+        current = await api(`/tournaments/${id}/bracket`);
+        $('listView').hidden = true;
+        $('detailView').hidden = false;
+        renderDetail();
+    }
+
+    function renderDetail() {
+        const info = current;
+        $('detailTitle').innerHTML =
+            `#${info.id} ${esc(info.name)} <span class="tag ${esc(info.status)}">${esc(info.status)}</span>`;
+
+        $('detailMeta').innerHTML = [
+            ['Дисциплина', esc(info.discipline) || '—'],
+            ['Участников', info.participantsCount],
+            ['Раундов', info.roundsCount],
+            ['Матчей', `${info.completedMatchesCount} / ${info.matchesCount}`],
+            ['Старт', when(info.startedAt)],
+            ['Финиш', when(info.finishedAt)],
+            ['Чемпион', info.champion ? '🏆 ' + esc(info.champion.name) : '—']
+        ].map(([label, value]) => `<span><span class="muted">${label}:</span> <b>${value}</b></span>`).join('');
+
+        const draft = info.status === 'DRAFT';
+        $('startBtn').hidden = !draft;
+        $('startBtn').disabled = info.participantsCount < 2;
+        $('participantForm').hidden = !draft;
+
+        $('participantCount').textContent = info.participantsCount;
+        $('participantRows').innerHTML = info.participants.length
+            ? info.participants.map((p, index) => `
+                <tr>
+                    <td class="muted">${index + 1}</td>
+                    <td>${esc(p.name)}</td>
+                    <td>${p.rating ?? '—'}</td>
+                </tr>`).join('')
+            : '<tr><td colspan="3" class="muted">никого нет</td></tr>';
+
+        renderBracket();
+        renderHistory();
+    }
+
+    function renderBracket() {
+        const info = current;
+        if (!info.rounds.length) {
+            $('bracket').innerHTML = '<p class="muted">Сетка появится после запуска турнира.</p>';
+            return;
+        }
+        $('bracket').innerHTML = info.rounds.map((round) => `
+            <div class="round">
+                <h3>${esc(round.title)} · ${round.matches.length}</h3>
+                ${round.matches.map(matchCard).join('')}
+            </div>`).join('');
+    }
+
+    function matchCard(match) {
+        return `
+            <div class="match">
+                <div class="match-head">
+                    <span>#${match.id}${match.bye ? ' · без игры' : ''}</span>
+                    <span class="tag ${esc(match.status)}">${esc(match.status)}</span>
+                </div>
+                ${slotRow(match, match.slot1)}
+                ${slotRow(match, match.slot2)}
+            </div>`;
+    }
+
+    function slotRow(match, participant) {
+        if (!participant) {
+            return '<div class="slot empty">ожидание…</div>';
+        }
+        const isWinner = match.winner && match.winner.id === participant.id;
+        const canPick = match.status === 'READY';
+        return `
+            <div class="slot ${isWinner ? 'win' : ''}">
+                <span>${esc(participant.name)}${isWinner ? ' ✓' : ''}</span>
+                ${canPick ? `<button data-match="${match.id}" data-winner="${participant.id}">победил</button>` : ''}
+            </div>`;
+    }
+
+    function renderHistory() {
+        const history = current.history;
+        $('historyRows').innerHTML = history.length
+            ? history.map((match) => `
+                <tr>
+                    <td>#${match.id}${match.bye ? ' <span class="muted">(без игры)</span>' : ''}</td>
+                    <td>${match.winner ? esc(match.winner.name) : '—'}</td>
+                    <td class="muted">${when(match.completedAt)}</td>
+                </tr>`).join('')
+            : '<tr><td colspan="3" class="muted">ещё ничего не сыграно</td></tr>';
+    }
+
+    // ---------- обработчики ----------
+
+    $('createForm').addEventListener('submit', (event) => {
+        event.preventDefault();
+        run(async () => {
+            const created = await api('/tournaments', {
+                method: 'POST',
+                body: JSON.stringify({
+                    name: $('tName').value.trim(),
+                    discipline: $('tDiscipline').value.trim()
+                })
+            });
+            $('createForm').reset();
+            await openTournament(created.id);
+        });
+    });
+
+    $('participantForm').addEventListener('submit', (event) => {
+        event.preventDefault();
+        run(async () => {
+            const rating = $('pRating').value.trim();
+            await api(`/tournaments/${current.id}/participants`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    name: $('pName').value.trim(),
+                    rating: rating === '' ? null : Number(rating)
+                })
+            });
+            $('participantForm').reset();
+            $('pName').focus();
+            await openTournament(current.id);
+        });
+    });
+
+    $('startBtn').addEventListener('click', () => run(async () => {
+        current = await api(`/tournaments/${current.id}/start`, { method: 'POST' });
+        renderDetail();
+    }));
+
+    $('deleteBtn').addEventListener('click', () => run(async () => {
+        if (!confirm(`Удалить турнир «${current.name}» со всей сеткой?`)) return;
+        await api(`/tournaments/${current.id}`, { method: 'DELETE' });
+        showList();
+    }));
+
+    // клик по «победил» внутри сетки — делегированием, карточки перерисовываются целиком
+    $('bracket').addEventListener('click', (event) => {
+        const button = event.target.closest('button[data-match]');
+        if (!button) return;
+        run(async () => {
+            current = await api(`/matches/${button.dataset.match}/result`, {
+                method: 'POST',
+                body: JSON.stringify({ winnerId: Number(button.dataset.winner) })
+            });
+            renderDetail();
+        });
+    });
+
+    $('tournamentRows').addEventListener('click', (event) => {
+        const button = event.target.closest('button[data-open]');
+        if (button) run(() => openTournament(Number(button.dataset.open)));
+    });
+
+    $('backBtn').addEventListener('click', showList);
+    $('reload').addEventListener('click', () => run(loadList));
+    $('prevPage').addEventListener('click', () => { page--; run(loadList); });
+    $('nextPage').addEventListener('click', () => { page++; run(loadList); });
+
+    run(loadList);
+</script>
+</body>
+</html>

@@ -19,8 +19,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-import static org.springframework.http.ResponseEntity.*;
-
 @RestController
 @RequestMapping("tournaments")
 @Slf4j
@@ -66,6 +64,6 @@ public class TournamentRestController {
     @DeleteMapping("{id}")
     public ResponseEntity<Void> deleteTournament(@PathVariable int id) {
         tournamentService.deleteById(id);
-        return  notFound().build();
+        return ResponseEntity.noContent().build();
     }
 }
