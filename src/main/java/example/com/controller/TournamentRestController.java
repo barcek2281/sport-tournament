@@ -2,14 +2,16 @@ package example.com.controller;
 
 import example.com.controller.dto.CreateTournamentRequestDto;
 import example.com.controller.dto.CreateTournamentResponseDto;
+import example.com.controller.mapper.TournamentMapper;
 import example.com.domain.Tournament;
 import example.com.service.TournamentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("tournaments")
@@ -17,18 +19,18 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class TournamentRestController {
     private final TournamentService tournamentService;
+    private final TournamentMapper tournamentMapper;
 
     @PostMapping()
     public CreateTournamentResponseDto createTournament(@RequestBody CreateTournamentRequestDto requestDto) {
-        Tournament tournament = new Tournament();
-        tournament.setName(requestDto.name());
-        tournament.setDiscipline(requestDto.discipline());
-
+        Tournament tournament = tournamentMapper.toEntity(requestDto);
         Tournament createdTournament = tournamentService.createTournament(tournament);
-        return new CreateTournamentResponseDto(
-                createdTournament.getId(),
-                createdTournament.getName(),
-                createdTournament.getDiscipline()
-        );
+        return tournamentMapper.toCreateResponse(createdTournament);
+    }
+
+    @GetMapping
+    public List<Tournament> getAllTournaments(@RequestParam int page, @RequestParam int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return tournamentService.getAllTournaments(pageable);
     }
 }
