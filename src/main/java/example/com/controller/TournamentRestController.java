@@ -13,9 +13,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+
+import static org.springframework.http.ResponseEntity.*;
 
 @RestController
 @RequestMapping("tournaments")
@@ -27,10 +31,10 @@ public class TournamentRestController {
     private final TournamentMapper tournamentMapper;
 
     @PostMapping()
-    public CreateTournamentResponseDto createTournament(@RequestBody CreateTournamentRequestDto requestDto) {
+    public ResponseEntity<CreateTournamentResponseDto> createTournament(@RequestBody CreateTournamentRequestDto requestDto) {
         Tournament tournament = tournamentMapper.toEntity(requestDto);
         Tournament createdTournament = tournamentService.createTournament(tournament);
-        return tournamentMapper.toCreateResponse(createdTournament);
+        return new ResponseEntity<>(tournamentMapper.toCreateResponse(createdTournament), HttpStatus.CREATED);
     }
 
     @GetMapping
@@ -60,7 +64,8 @@ public class TournamentRestController {
     }
 
     @DeleteMapping("{id}")
-    public void deleteTournament(@PathVariable int id) {
+    public ResponseEntity<Void> deleteTournament(@PathVariable int id) {
         tournamentService.deleteById(id);
+        return  notFound().build();
     }
 }

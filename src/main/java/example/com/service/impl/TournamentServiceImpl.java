@@ -17,12 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -143,12 +138,9 @@ public class TournamentServiceImpl implements TournamentService {
 
     @Override
     @Transactional
-    public TournamentInfoDto resultMatch(int matchId, int winnerNumber) {
+    public TournamentInfoDto resultMatch(int matchId, int winnerId) {
         Match match = matchRepository.findById(matchId)
                 .orElseThrow(() -> new ResourceNotFound("match not found by id"));
-        if (winnerNumber < 1 || winnerNumber > 2) {
-            throw new IllegalStateException("winner number must be between 1 and 2");
-        }
         if (match.getStatus() == MatchStatus.COMPLETED) {
             throw new IllegalStateException("match is already completed");
         }
@@ -156,7 +148,14 @@ public class TournamentServiceImpl implements TournamentService {
             throw new IllegalStateException("match is not ready: both participants are not known yet");
         }
 
-        Participant winner = winnerNumber == 1 ? match.getSlot1Participant() : match.getSlot2Participant();
+        Participant winner;
+        if (match.getSlot1Participant().getId() == winnerId) {
+            winner = match.getSlot1Participant();
+        } else if (match.getSlot2Participant().getId() == winnerId) {
+            winner = match.getSlot2Participant();
+        } else {
+            throw new IllegalStateException("participant is not in this match");
+        }
         completeMatch(match, winner);
 
         Tournament tournament = match.getTournament();
@@ -219,10 +218,12 @@ public class TournamentServiceImpl implements TournamentService {
                 tournament.getCreatedAt(),
                 tournament.getStartedAt(),
                 tournament.getFinishedAt(),
+
                 participants.size(),
                 rounds.size(),
                 matches.size(),
                 history.size(),
+
                 champion,
                 participants,
                 rounds,
