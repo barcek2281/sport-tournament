@@ -2,6 +2,7 @@ package example.com.service.impl;
 
 import example.com.domain.Participant;
 import example.com.domain.Tournament;
+import example.com.domain.TournamentStatus;
 import example.com.repository.ParticipantRepository;
 import example.com.service.ParticipantService;
 import example.com.service.TournamentService;
@@ -18,6 +19,9 @@ public class ParticipantServiceImpl implements ParticipantService {
     @Override
     public Participant createParticipants(int tournamentId, Participant participant) {
         Tournament tournament = tournamentService.getById(tournamentId);
+        if (tournament.getStatus() != TournamentStatus.DRAFT) {
+            throw new IllegalStateException("Tournament already has been started");
+        }
         participant.setTournament(tournament);
         return participantRepository.save(participant);
     }

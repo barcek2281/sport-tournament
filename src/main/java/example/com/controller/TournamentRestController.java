@@ -34,7 +34,8 @@ public class TournamentRestController {
     }
 
     @GetMapping
-    public List<Tournament> getAllTournaments(@RequestParam int page, @RequestParam int size) {
+    public List<Tournament> getAllTournaments(@RequestParam(defaultValue = "0", required = false) int page,
+                                              @RequestParam(defaultValue = "10", required = false) int size) {
         Pageable pageable = PageRequest.of(page, size);
         return tournamentService.getAllTournaments(pageable);
     }
@@ -56,5 +57,10 @@ public class TournamentRestController {
     @PostMapping("/{id}/start")
     public TournamentInfoDto startTournament(@PathVariable int id) {
         return tournamentService.startTournament(id);
+    }
+
+    @DeleteMapping("{id}")
+    public void deleteTournament(@PathVariable int id) {
+        tournamentService.deleteById(id);
     }
 }

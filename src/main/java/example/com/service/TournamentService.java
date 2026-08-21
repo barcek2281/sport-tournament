@@ -13,4 +13,8 @@ public interface TournamentService {
 
     TournamentInfoDto getTournamentInfo(int id);
     TournamentInfoDto startTournament(int id);
+
+    TournamentInfoDto resultMatch(int matchId, int winnerNumber);
+
+    void deleteById(int id);
 }

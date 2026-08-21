@@ -59,7 +59,7 @@ public class TournamentServiceImpl implements TournamentService {
     public TournamentInfoDto startTournament(int id) {
         Tournament tournament = getById(id);
         if (tournament.getStatus() != TournamentStatus.DRAFT) {
-            throw new IllegalStateException("tournament is not draft yet");
+            return buildTournamentInfo(tournament);
         }
         List<Participant> participants = tournamentRepository.findAllParticipantByTournamentIdRatingDesc(id);
         if (participants.size() < 2) {
@@ -139,6 +139,37 @@ public class TournamentServiceImpl implements TournamentService {
         tournament.setStartedAt(LocalDateTime.now());
 
         return buildTournamentInfo(tournament);
+    }
+
+    @Override
+    @Transactional
+    public TournamentInfoDto resultMatch(int matchId, int winnerNumber) {
+        Match match = matchRepository.findById(matchId)
+                .orElseThrow(() -> new ResourceNotFound("match not found by id"));
+        if (winnerNumber < 1 || winnerNumber > 2) {
+            throw new IllegalStateException("winner number must be between 1 and 2");
+        }
+        if (match.getStatus() == MatchStatus.COMPLETED) {
+            throw new IllegalStateException("match is already completed");
+        }
+        if (match.getStatus() != MatchStatus.READY) {
+            throw new IllegalStateException("match is not ready: both participants are not known yet");
+        }
+
+        Participant winner = winnerNumber == 1 ? match.getSlot1Participant() : match.getSlot2Participant();
+        completeMatch(match, winner);
+
+        Tournament tournament = match.getTournament();
+        if (match.getNextMatch() == null) {
+            tournament.setStatus(TournamentStatus.COMPLETED);
+            tournament.setFinishedAt(LocalDateTime.now());
+        }
+        return buildTournamentInfo(tournament);
+    }
+
+    @Override
+    public void deleteById(int id) {
+        tournamentRepository.deleteById(id);
     }
 
     private TournamentInfoDto buildTournamentInfo(Tournament tournament) {
